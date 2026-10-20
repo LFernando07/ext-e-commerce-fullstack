@@ -1,0 +1,67 @@
+// prisma/schema.prisma
+// Configuración de Prisma ORM para Supabase (PostgreSQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// 1. MODELO DE PEDIDOS A PLAZOS (Nenis Club / PedidosManager)
+// ─────────────────────────────────────────────────────────────
+model Pedido {
+  id              String   @id @default(cuid())
+  neniId          String   @default("usr_neni_001")
+  clienteNombre   String
+  concepto        String
+  monto           Float
+  plazosQuincenas Int      @default(4)
+  montoQuincenal  Float
+  estado          String   @default("pendiente") // 'pendiente' | 'aprobado' | 'en_entrega' | 'completado'
+  fechaCreacion   DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([estado])
+  @@index([neniId])
+  @@map("pedidos")
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2. MODELO DE PEDIDOS CAPSULE CORP (Dragon Ball Z E-Commerce)
+// ─────────────────────────────────────────────────────────────
+model CapsuleOrder {
+  id             String             @id @default(cuid())
+  orderCode      String             @unique // Ej. CC-MVFI7WC9-742
+  customerName   String
+  address        String             @default("Capital del Oeste, Tierra")
+  paymentMethod         String             @default("Zeni en Efectivo")
+  paymentStatus         String             @default("pending") // 'pending' | 'paid' | 'failed'
+  stripeSessionId       String?            @unique
+  stripePaymentIntentId String?
+  totalZeni             Float
+  itemsPurchased        Int                @default(1)
+  status                String             @default("despachado") // 'despachado' | 'en_camino' | 'entregado'
+  items                 CapsuleOrderItem[]
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@map("capsule_orders")
+}
+
+model CapsuleOrderItem {
+  id        String       @id @default(cuid())
+  orderId   String
+  order     CapsuleOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  name      String
+  quantity  Int          @default(1)
+  unitPrice Float
+  image     String?
+
+  @@index([orderId])
+  @@map("capsule_order_items")
+}

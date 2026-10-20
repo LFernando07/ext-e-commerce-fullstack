@@ -1,26 +1,66 @@
 @import "tailwindcss";
-
+/*@import url('https://fonts.googleapis.com/css2?family=Teachers:ital,wght@0,400;0,500;0,600;0,700;1,700&family=Poppins:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Colores Principales Nenis Club */
+  --color-femenina: #5B3289;
+  --color-energia: #F7A914;
+  --color-calidez: #DD4591;
+  --color-frescura: #51BDC6;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Colores Secundarios Profundos */
+  --color-femenina-deep: #302768;
+  --color-energia-deep: #F0882A;
+  --color-calidez-deep: #B2116C;
+  --color-frescura-deep: #00A4BF;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Semánticos */
+  --color-primary: var(--color-femenina);
+  --color-primary-hover: var(--color-femenina-deep);
+  --color-accent: var(--color-calidez);
+  --color-accent-hover: var(--color-calidez-deep);
+  --color-warning: var(--color-energia);
+  --color-info: var(--color-frescura);
+
+  /* Fondos y Neutros */
+  --color-bg-page: #FAF9FF;
+  --color-bg-card: #FFFFFF;
+  --color-bg-surface: #F1EFF9;
+  --color-text-primary: #1A1228;
+  --color-text-secondary: #5E5C78;
+  --color-border: #E2DFF5;
+
+  /* Fuentes */
+  --font-display: 'Teachers', serif;
+  --font-ui: 'Poppins', sans-serif;
+  --font-body: 'Outfit', sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  margin: 0;
+  padding: 0;
 }
+
+/* Clases Utilitarias Nenis Club */
+.font-display { font-family: var(--font-display); }
+.font-ui { font-family: var(--font-ui); }
+.font-body { font-family: var(--font-body); }
+
+.bg-femenina { background-color: var(--color-femenina); }
+.bg-femenina-deep { background-color: var(--color-femenina-deep); }
+.bg-calidez { background-color: var(--color-calidez); }
+.bg-energia { background-color: var(--color-energia); }
+.bg-frescura { background-color: var(--color-frescura); }
+.bg-surface-nc { background-color: var(--color-bg-surface); }
+
+.text-femenina { color: var(--color-femenina); }
+.text-calidez { color: var(--color-calidez); }
+.text-energia { color: var(--color-energia); }
+.text-frescura { color: var(--color-frescura); }
+.text-primary-nc { color: var(--color-text-primary); }
+.text-secondary-nc { color: var(--color-text-secondary); }
+
+.border-nc { border-color: var(--color-border); }
