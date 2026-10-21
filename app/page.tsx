@@ -55,8 +55,8 @@ export default function HomePage({ searchParams }: SearchParamsProps) {
 
           {/* Subtítulo */}
           <p className="font-body text-gray-300 text-base sm:text-lg lg:text-xl max-w-3xl mx-auto leading-relaxed">
-            Explora el catálogo oficial potenciado por Next.js 16. Compra con
-            Zeni, experimenta mutaciones instantáneas con
+            Explora el catálogo oficial potenciado por Next.js 16. Compra en
+            <strong className="text-cyan-300"> Pesos Mexicanos (MXN)</strong> con tarjeta vía <strong className="text-indigo-400">Stripe</strong> o efectivo, experimenta mutaciones instantáneas con
             <strong className="text-cyan-300 font-mono">
               {" "}
               Server Actions

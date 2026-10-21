@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api, ENDPOINTS } from '@/lib/api-client';
 import Link from 'next/link';
 import LoginModal from '@/components/LoginModal';
+import CapsuleOrdersManager from '@/components/dbz/CapsuleOrdersManager';
 
 export default function ModuloInternoPage() {
   const { user, loading: authLoading } = useAuth();
@@ -229,6 +230,9 @@ export default function ModuloInternoPage() {
             </div>
           ) : null}
         </div>
+
+        {/* Módulo de Ventas y Órdenes de Capsule Corp */}
+        <CapsuleOrdersManager />
 
       </div>
     </div>

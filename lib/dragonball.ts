@@ -30,10 +30,10 @@ const DBZ_API_BASE_URL = process.env.DBZ_API_BASE_URL;
  * para evitar Hydration Mismatch entre SSR y Client.
  */
 export function enrichCharacter(character: DBZCharacter): ECommerceProduct {
-  // Fórmula determinista para el precio: Base 2,500 Zeni + modulación por ID y longitud de nombre
-  const baseFactor = (character.id * 733) % 45000;
-  const kiFactor = character.ki ? Math.min(character.ki.length * 1500, 30000) : 5000;
-  const priceInZeni = 5000 + baseFactor + kiFactor;
+  // Fórmula determinista para el precio en Pesos Mexicanos (MXN): Base $250 MXN + modulación por ID y nivel
+  const baseFactor = (character.id * 127) % 1500;
+  const kiFactor = character.ki ? Math.min(character.ki.length * 40, 800) : 100;
+  const priceInZeni = 250 + baseFactor + kiFactor; // Representa el precio real en MXN
 
   // Stock determinista entre 3 y 48 unidades
   const stock = 3 + ((character.id * 17) % 46);
@@ -67,9 +67,10 @@ export function enrichCharacter(character: DBZCharacter): ECommerceProduct {
     ...character,
     priceInZeni,
     formattedPrice: new Intl.NumberFormat('es-MX', {
-      style: 'decimal',
+      style: 'currency',
+      currency: 'MXN',
       maximumFractionDigits: 0,
-    }).format(priceInZeni) + ' Zeni',
+    }).format(priceInZeni) + ' MXN',
     stock,
     capsuleType,
     powerTier,

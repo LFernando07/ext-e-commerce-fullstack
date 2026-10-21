@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { prisma, isPrismaConfigured } from '@/lib/prisma';
 import { stripe, isStripeConfigured } from '@/lib/stripe';
+import SuccessOrderTracker from '@/components/dbz/SuccessOrderTracker';
 
 interface SuccessContentProps {
   searchParams: Promise<{
@@ -68,6 +69,16 @@ async function SuccessContent({ searchParams }: SuccessContentProps) {
         Stripe Sandbox • Pago Aprobado
       </span>
 
+      {/* Tracker de GA4 y vaciado de carrito */}
+      <div className="flex justify-center">
+        <SuccessOrderTracker
+          orderCode={order?.orderCode || order_code || 'CC-HOIPOI-TEST'}
+          totalZeni={order?.totalZeni || 0}
+          paymentMethod={order?.paymentMethod || 'Stripe Sandbox'}
+          items={order?.items || []}
+        />
+      </div>
+
       <h1 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-white via-cyan-200 to-cyan-400 mb-2">
         ¡Cápsulas Despachadas!
       </h1>
@@ -105,7 +116,7 @@ async function SuccessContent({ searchParams }: SuccessContentProps) {
         <div className="flex justify-between items-center pt-1 text-sm">
           <span className="text-gray-300">Total Transacción:</span>
           <span className="text-amber-400 font-bold">
-            {order ? new Intl.NumberFormat('es-MX').format(order.totalZeni) : '0'} Zeni
+            {order ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(order.totalZeni) : '$0.00 MXN'}
           </span>
         </div>
       </div>

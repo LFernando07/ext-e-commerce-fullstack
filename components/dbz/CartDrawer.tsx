@@ -27,6 +27,7 @@ import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { checkoutAction } from '@/app/actions/cart';
 import { createStripeCheckoutSession } from '@/app/actions/stripe';
+import { trackPurchase, trackPurchaseFailure } from '@/lib/analytics';
 import { CheckoutResult, CartItem } from '@/types/dragonball';
 
 const initialCheckoutState: CheckoutResult = {
@@ -50,7 +51,27 @@ export default function CartDrawer() {
     async (prevState: CheckoutResult, formData: FormData) => {
       const res = await checkoutAction(prevState, formData);
       if (res.success) {
+        // Enviar evento de compra exitosa en Efectivo a GA4 y Meta Pixel
+        trackPurchase({
+          transaction_id: res.orderId || `CC-CASH-${Date.now()}`,
+          value: res.totalZeni || 0,
+          currency: 'MXN',
+          payment_method: 'Efectivo al recibir',
+          items: optimisticItems.map((it) => ({
+            item_id: it.product.id,
+            item_name: it.product.name,
+            price: it.product.priceInZeni,
+            quantity: it.quantity,
+          })),
+        });
         clearCart();
+      } else {
+        trackPurchaseFailure({
+          transaction_id: 'cash_checkout_failed',
+          error_message: res.message || 'Error en pago en efectivo',
+          payment_method: 'Efectivo',
+          reason: 'system_error',
+        });
       }
       return res;
     },
@@ -78,11 +99,21 @@ export default function CartDrawer() {
         // Redirección directa a la pasarela alojada de Stripe Checkout
         window.location.href = res.url;
       } else {
+        trackPurchaseFailure({
+          error_message: res.message || 'Error al iniciar Stripe',
+          payment_method: 'Stripe Sandbox',
+          reason: 'system_error',
+        });
         setStripeError(res.message || 'Error al conectar con Stripe Sandbox');
         setIsStripeLoading(false);
       }
     } catch (err: unknown) {
       const error = err as Error;
+      trackPurchaseFailure({
+        error_message: error.message || 'Error inesperado con Stripe',
+        payment_method: 'Stripe Sandbox',
+        reason: 'system_error',
+      });
       setStripeError(error.message || 'Error inesperado al conectar con Stripe.');
       setIsStripeLoading(false);
     }
@@ -162,25 +193,58 @@ export default function CartDrawer() {
           {/* Cuerpo: Lista de Productos u Orden Exitosa */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             
-            {/* Notificación de Éxito de la Server Action */}
+            {/* Notificación de Éxito de la Server Action (Recibo Detallado) */}
             {checkoutState.success ? (
-              <div className="p-6 rounded-2xl bg-emerald-950/70 border border-emerald-500/50 text-center space-y-3 my-auto">
-                <span className="text-4xl">🚀</span>
-                <h3 className="font-display font-bold text-xl text-emerald-400">
-                  ¡Orden Despachada!
+              <div className="p-6 rounded-3xl bg-linear-to-b from-[#13221C] to-[#0D1612] border border-emerald-500/50 text-center space-y-4 my-auto shadow-2xl shadow-emerald-950/60">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-3xl mx-auto shadow-inner">
+                  ✨
+                </div>
+
+                <span className="inline-block px-3 py-1 text-[11px] font-mono uppercase tracking-wider text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 rounded-full">
+                  Pago en Efectivo • Confirmado
+                </span>
+
+                <h3 className="font-display font-bold text-xl text-white">
+                  ¡Pedido Despachado con Éxito!
                 </h3>
+
                 <p className="text-xs text-gray-300 leading-relaxed">
                   {checkoutState.message}
                 </p>
-                <div className="p-3 rounded-lg bg-black/40 font-mono text-xs text-emerald-300">
-                  Orden ID: {checkoutState.orderId}
+
+                {/* Resumen de la Orden */}
+                <div className="p-4 rounded-2xl bg-black/50 border border-white/10 text-left font-mono text-xs space-y-2">
+                  <div className="flex justify-between items-center border-b border-white/10 pb-1.5">
+                    <span className="text-gray-400">Orden ID:</span>
+                    <span className="text-emerald-300 font-bold">{checkoutState.orderId}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-white/10 pb-1.5">
+                    <span className="text-gray-400">Comprador:</span>
+                    <span className="text-white">{checkoutState.customerName || 'Bulma Brief'}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-white/10 pb-1.5">
+                    <span className="text-gray-400">Total a pagar al recibir:</span>
+                    <span className="text-amber-400 font-bold">
+                      {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(checkoutState.totalZeni || 0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-0.5">
+                    <span className="text-gray-400">Estado en Base de Datos:</span>
+                    <span className="text-cyan-300">Guardado en Supabase ⚡</span>
+                  </div>
                 </div>
+
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-[10px] text-cyan-300 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                  <span>Evento &apos;purchase&apos; registrado en GA4</span>
+                </div>
+
                 <button
                   type="button"
                   onClick={closeCart}
-                  className="w-full mt-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold text-xs transition-colors"
+                  className="w-full mt-2 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold text-xs transition-all shadow-lg cursor-pointer"
                 >
-                  Continuar Explorando
+                  Continuar Explorando la Tienda
                 </button>
               </div>
             ) : optimisticItems.length === 0 ? (
@@ -269,11 +333,11 @@ export default function CartDrawer() {
           {optimisticItems.length > 0 && !checkoutState.success && (
             <div className="p-6 border-t border-white/10 bg-[#151B29] space-y-4">
               
-              {/* Resumen de Zeni */}
+              {/* Resumen Total en MXN */}
               <div className="flex justify-between items-center text-sm font-mono">
                 <span className="text-gray-400">Total a Pagar:</span>
                 <span className="text-xl font-bold text-amber-400">
-                  {new Intl.NumberFormat('es-MX').format(optimisticTotalZeni)} Zeni
+                  {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(optimisticTotalZeni)}
                 </span>
               </div>
 

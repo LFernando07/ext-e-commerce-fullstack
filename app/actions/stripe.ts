@@ -94,12 +94,11 @@ export async function createStripeCheckoutSession(
     }
 
     // 2. Mapear cada cápsula a un Line Item de Stripe
-    // Conversión de Zeni a Centavos MXN (ej: 100 Zeni = $10.00 MXN -> 1000 centavos)
+    // Conversión de precio MXN a Centavos (ej: $350 MXN -> 35000 centavos)
     const line_items = items.map((item) => {
-      // 100 Zeni -> 10 MXN = 1000 centavos
       const unitAmountInCents = Math.max(
         1000,
-        Math.round((item.product.priceInZeni / 10) * 100)
+        Math.round(item.product.priceInZeni * 100)
       );
 
       return {

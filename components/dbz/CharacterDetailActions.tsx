@@ -66,7 +66,7 @@ export default function CharacterDetailActions({ product }: CharacterDetailActio
             Subtotal:
           </span>
           <span className="font-mono font-bold text-2xl text-amber-400">
-            {new Intl.NumberFormat('es-MX').format(product.priceInZeni * quantity)} Zeni
+            {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(product.priceInZeni * quantity)}
           </span>
         </div>
       </div>

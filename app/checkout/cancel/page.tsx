@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
+import CancelOrderTracker from '@/components/dbz/CancelOrderTracker';
 
 interface CancelContentProps {
   searchParams: Promise<{
@@ -22,6 +23,10 @@ async function CancelContent({ searchParams }: CancelContentProps) {
       <span className="inline-block px-3 py-1 text-[11px] font-mono uppercase tracking-wider text-red-400 bg-red-950/60 border border-red-500/30 rounded-full mb-3">
         Transacción Cancelada
       </span>
+
+      <div className="flex justify-center">
+        <CancelOrderTracker orderCode={order_code} />
+      </div>
 
       <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">
         Pago no completado
