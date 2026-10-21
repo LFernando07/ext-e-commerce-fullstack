@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import React from 'react';
+
+export const metadata: Metadata = {
+  title: 'Sobre Nosotros | Capsule Corp Store',
+  description: 'Conoce más sobre Capsule Corp, nuestra tecnología Hoi-Poi y nuestro compromiso.',
+};
 
 // Definición de las propiedades (opcional, por si quieres reutilizar el componente)
 interface AboutProps {

@@ -14,6 +14,8 @@ import { useCart } from '@/context/CartContext';
 import LoginModal from '@/components/LoginModal';
 import { paths } from '@/config/routes';
 
+import { trackNavigationClick } from '@/lib/analytics';
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { totalItems, openCart } = useCart();
@@ -39,7 +41,11 @@ export default function Navbar() {
         <div className="max-w-full mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           
           {/* Logotipo Capsule Corp & Nenis Club */}
-          <Link href={paths.landing.home} className="flex items-center gap-2 group">
+          <Link
+            href={paths.landing.home}
+            onClick={() => trackNavigationClick('Logo Home', '/')}
+            className="flex items-center gap-2 group"
+          >
             <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 font-bold text-sm group-hover:scale-110 transition-transform">
               CC
             </div>
@@ -57,32 +63,44 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/"
+              onClick={() => trackNavigationClick('Tienda & Inicio', '/')}
               className="text-sm font-ui text-gray-300 hover:text-cyan-400 font-medium transition-colors"
             >
               Tienda & Inicio
             </Link>
             <Link
               href="/#catalogo"
+              onClick={() => trackNavigationClick('Catálogo Guerreros', '/#catalogo')}
               className="text-sm font-ui text-gray-300 hover:text-cyan-400 transition-colors flex items-center gap-1"
             >
               <span>💊</span> Catálogo Guerreros
             </Link>
             <Link
               href={paths.cacheDemo}
+              onClick={() => trackNavigationClick('Lab Caché', paths.cacheDemo)}
               className="text-sm font-ui text-gray-300 hover:text-cyan-400 transition-colors flex items-center gap-1"
             >
               <span>⚡</span> Lab Caché
+            </Link>
+            <Link
+              href={paths.landing.about}
+              onClick={() => trackNavigationClick('Sobre Nosotros', paths.landing.about)}
+              className="text-sm font-ui text-gray-300 hover:text-cyan-400 transition-colors"
+            >
+              Sobre Nosotros
             </Link>
             {user && (
               <>
                 <Link
                   href={paths.dashboard}
+                  onClick={() => trackNavigationClick('Mi Espacio', paths.dashboard)}
                   className="text-sm font-ui text-purple-300 font-semibold hover:text-purple-200 transition-colors"
                 >
                   Mi Espacio
                 </Link>
                 <Link
                   href={paths.interno}
+                  onClick={() => trackNavigationClick('Módulo Interno', paths.interno)}
                   className="text-sm font-ui text-pink-400 font-semibold hover:text-pink-300 transition-colors flex items-center gap-1"
                 >
                   <span>🏛️</span> Módulo Interno
@@ -116,7 +134,7 @@ export default function Navbar() {
             {user ? (
               <div className="flex items-center gap-2.5">
                 <Link
-                  href="/dashboard"
+                  href={paths.dashboard}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:border-cyan-500/40 transition-colors"
                 >
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

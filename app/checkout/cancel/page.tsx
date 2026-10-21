@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 import CancelOrderTracker from '@/components/dbz/CancelOrderTracker';
+import { paths } from '@/config/routes';
 
 interface CancelContentProps {
   searchParams: Promise<{
@@ -43,11 +44,11 @@ async function CancelContent({ searchParams }: CancelContentProps) {
 
       <div className="flex flex-col gap-2">
         <Link
-          href="/"
+          href={paths.dashboard}
           className="w-full py-3 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold text-xs transition-colors flex items-center justify-center gap-2"
         >
           <span>🛒</span>
-          <span>Regresar al Carrito</span>
+          <span>Regresar a mi Espacio</span>
         </Link>
       </div>
     </div>

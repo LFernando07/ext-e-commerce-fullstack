@@ -15,7 +15,27 @@ export const paths = {
   cookies: '/cookies' as Route,
   interno: '/interno' as Route,
   cacheDemo: '/cache-demo' as Route,
+  checkoutSuccess: '/checkout/success' as Route,
+  checkoutCancel: '/checkout/cancel' as Route,
+  resetPassword: '/auth/reset-password' as Route,
+  sentryTest: '/sentry-test' as Route,
 } as const;
+
+/**
+ * Mapeo de rutas a nombres descriptivos de página para Google Analytics 4
+ */
+export const ROUTE_TITLES: Record<string, string> = {
+  '/': 'Tienda & Inicio | Capsule Corp Store',
+  '/about': 'Sobre Nosotros | Capsule Corp',
+  '/cache-demo': 'Laboratorio de Caché (PPR & Turbopack)',
+  '/cookies': 'Política de Cookies y Privacidad',
+  '/dashboard': 'Mi Espacio de Usuario',
+  '/interno': 'Módulo Interno de Operaciones',
+  '/checkout/success': 'Confirmación de Compra Exitosa',
+  '/checkout/cancel': 'Orden Cancelada / Carrito Abandonado',
+  '/auth/reset-password': 'Recuperar Contraseña de Cuenta',
+  '/sentry-test': 'Prueba de Monitoreo con Sentry',
+};
 
 /**
  * Rutas de la API fuertemente tipadas (Single Source of Truth)

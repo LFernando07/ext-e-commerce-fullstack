@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
+import AbandonedCartManager from './AbandonedCartManager';
 
 interface CapsuleOrderItem {
   id: string;
@@ -44,6 +45,39 @@ export default function CapsuleOrdersManager() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [emailStatus, setEmailStatus] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState<'orders' | 'abandoned'>('orders');
+
+  const handleSendEmail = async (order: CapsuleOrder) => {
+    const targetEmail = prompt(
+      `Ingresa el correo para enviar el comprobante de la orden ${order.orderCode}:`,
+      'cliente@ejemplo.com'
+    );
+    if (!targetEmail || !targetEmail.includes('@')) return;
+
+    setEmailStatus((prev) => ({ ...prev, [order.id]: 'Enviando...' }));
+    try {
+      const res = await fetch('/api/capsule-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, email: targetEmail }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEmailStatus((prev) => ({
+          ...prev,
+          [order.id]: data.mocked ? 'Simulado en consola' : '¡Enviado con Resend!',
+        }));
+      } else {
+        setEmailStatus((prev) => ({
+          ...prev,
+          [order.id]: 'Error: ' + (data.error || 'Fallo'),
+        }));
+      }
+    } catch {
+      setEmailStatus((prev) => ({ ...prev, [order.id]: 'Error de conexión' }));
+    }
+  };
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -71,8 +105,41 @@ export default function CapsuleOrdersManager() {
   }, [filterPayment, searchTerm]);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    let ignore = false;
+    async function load() {
+      try {
+        const params = new URLSearchParams();
+        if (filterPayment !== 'all') params.set('paymentStatus', filterPayment);
+        if (searchTerm.trim()) params.set('search', searchTerm.trim());
+
+        const res = await fetch(`/api/capsule-orders?${params.toString()}`);
+        if (!res.ok) {
+          throw new Error('Error al consultar órdenes de compra en Supabase');
+        }
+
+        const data = await res.json();
+        if (!ignore) {
+          setOrders(data.orders || []);
+          setStats(data.stats || null);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          const e = err as Error;
+          setError(e.message || 'Error de conexión');
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      ignore = true;
+    };
+  }, [filterPayment, searchTerm]);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
@@ -101,8 +168,40 @@ export default function CapsuleOrdersManager() {
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E2DFF5] shadow-sm space-y-6">
       
-      {/* Encabezado y Acciones */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E2DFF5] pb-5">
+      {/* Selector de Pestañas Principal */}
+      <div className="flex bg-[#FAF9FF] p-1.5 rounded-2xl border border-[#E2DFF5] gap-1.5">
+        <button
+          type="button"
+          onClick={() => setActiveTab('orders')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-ui font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            activeTab === 'orders'
+              ? 'bg-[#1A1228] text-white shadow-md'
+              : 'text-[#5E5C78] hover:text-[#1A1228]'
+          }`}
+        >
+          <span>📦</span>
+          <span>Órdenes de Compra (Stripe & Efectivo)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('abandoned')}
+          className={`flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-ui font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            activeTab === 'abandoned'
+              ? 'bg-[#1A1228] text-white shadow-md'
+              : 'text-[#5E5C78] hover:text-[#1A1228]'
+          }`}
+        >
+          <span>🛒⚡</span>
+          <span>Carritos Abandonados (Recuperación Hoi-Poi)</span>
+        </button>
+      </div>
+
+      {activeTab === 'abandoned' ? (
+        <AbandonedCartManager />
+      ) : (
+        <>
+          {/* Encabezado y Acciones */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E2DFF5] pb-5">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-ui font-semibold mb-1">
             <span>📦</span> Registro de Ventas Capsule Corp (E-Commerce)
@@ -297,15 +396,32 @@ export default function CapsuleOrdersManager() {
                   </div>
                 </div>
 
-                {/* Botón para desplegar productos */}
-                <div className="pt-2 border-t border-[#E2DFF5]/60 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
-                    className="text-[11px] font-ui text-[#5B3289] hover:underline flex items-center gap-1 cursor-pointer font-medium"
-                  >
-                    <span>{isExpanded ? '▲ Ocultar' : '▼ Ver'} desglose de productos ({order.items.length})</span>
-                  </button>
+                {/* Botones de Acción de la Orden */}
+                <div className="pt-2 border-t border-[#E2DFF5]/60 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                      className="text-[11px] font-ui text-[#5B3289] hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                    >
+                      <span>{isExpanded ? '▲ Ocultar' : '▼ Ver'} desglose de productos ({order.items.length})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSendEmail(order)}
+                      className="text-[11px] font-ui text-cyan-800 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer font-medium"
+                    >
+                      <span>✉️</span>
+                      <span>Enviar Comprobante (Resend)</span>
+                    </button>
+
+                    {emailStatus[order.id] && (
+                      <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        {emailStatus[order.id]}
+                      </span>
+                    )}
+                  </div>
 
                   {order.stripeSessionId && (
                     <span className="text-[10px] font-mono text-gray-400">
@@ -350,6 +466,8 @@ export default function CapsuleOrdersManager() {
             );
           })}
         </div>
+      )}
+        </>
       )}
 
     </div>

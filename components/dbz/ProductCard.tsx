@@ -104,7 +104,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
             </h3>
           </Link>
 
-          <p className="text-xs text-gray-400 line-clamp-2 mt-1 min-h-[32px] leading-relaxed">
+          <p className="text-xs text-gray-400 line-clamp-2 mt-1 min-h-8 leading-relaxed">
             {product.description || 'Espécimen guerrero preparado por la división científica de Capsule Corp.'}
           </p>
         </div>
@@ -145,7 +145,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
             {isAddedFeedback ? (
               <>
                 <span>✓</span>
-                <span>¡Cápsula Lista!</span>
+                <span>¡Añadido!</span>
               </>
             ) : (
               <>

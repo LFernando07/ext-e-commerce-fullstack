@@ -21,6 +21,7 @@
  */
 
 import { revalidatePath, revalidateTag } from 'next/cache';
+import { cookies } from 'next/headers';
 import { CheckoutResult, ECommerceProduct } from '@/types/dragonball';
 import { prisma, isPrismaConfigured } from '@/lib/prisma';
 
@@ -51,13 +52,26 @@ export async function checkoutAction(
   prevState: CheckoutResult,
   formData: FormData
 ): Promise<CheckoutResult> {
-  // 1. Extracción de parámetros desde FormData
+  // 1. Validar Autenticación Requerida (Regla de negocio: sólo usuarios logueados pueden comprar)
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('nenis_session');
+  if (!sessionCookie?.value) {
+    return {
+      success: false,
+      message: 'Debes iniciar sesión o registrarte para completar tu pedido de cápsulas.',
+      error: 'AUTH_REQUIRED',
+    };
+  }
+
+  // 2. Extracción de parámetros desde FormData
   const customerName = (formData.get('customerName') as string)?.trim();
   const address = (formData.get('address') as string)?.trim() || 'Capital del Oeste, Tierra';
   const paymentMethod = (formData.get('paymentMethod') as string) || 'Zeni en Efectivo';
   const rawItems = formData.get('itemsPayload') as string;
+  const couponCode = (formData.get('couponCode') as string)?.trim() || '';
+  const discountPercent = Number(formData.get('discountPercent')) || 0;
 
-  // 2. Validación en el Servidor (Server-Side Validation)
+  // 3. Validación en el Servidor (Server-Side Validation)
   if (!customerName || customerName.length < 3) {
     return {
       success: false,
@@ -88,36 +102,40 @@ export async function checkoutAction(
     };
   }
 
-  // 3. Simulación de procesamiento de pago y verificación de Ki (Server latency)
+  // 4. Simulación de procesamiento de pago y verificación de Ki (Server latency)
   await new Promise((resolve) => setTimeout(resolve, 800));
 
-  // 4. Cálculo del total en el servidor para evitar manipulaciones del cliente
-  const totalZeni = parsedItems.reduce(
+  // 5. Cálculo del total en el servidor aplicando cupón si existe
+  const discountMultiplier = discountPercent > 0 ? 1 - discountPercent / 100 : 1;
+  const rawTotalZeni = parsedItems.reduce(
     (acc, item) => acc + item.product.priceInZeni * item.quantity,
     0
   );
-
+  const totalZeni = Math.round(rawTotalZeni * discountMultiplier);
   const totalUnits = parsedItems.reduce((acc, item) => acc + item.quantity, 0);
 
-  // 5. Creación del registro de pedido Capsule Corp
+  // 6. Creación del registro de pedido Capsule Corp
   const orderId = `CC-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
+  const effectivePaymentMethod = couponCode
+    ? `${paymentMethod} (Cupón ${couponCode} -${discountPercent}%)`
+    : paymentMethod;
 
   const orderRecord: DBZOrder = {
     orderId,
     customerName,
     address,
-    paymentMethod,
+    paymentMethod: effectivePaymentMethod,
     items: parsedItems.map((i) => ({
       productId: i.product.id,
       name: i.product.name,
       quantity: i.quantity,
-      unitPrice: i.product.priceInZeni,
+      unitPrice: Math.round(i.product.priceInZeni * discountMultiplier),
     })),
     totalZeni,
     createdAt: new Date().toISOString(),
   };
 
-  // 5. Persistencia: Si Supabase está configurado con DATABASE_URL, guardamos en PostgreSQL con Prisma
+  // 7. Persistencia: Si Supabase está configurado con DATABASE_URL, guardamos en PostgreSQL con Prisma
   if (isPrismaConfigured()) {
     try {
       await prisma.capsuleOrder.create({
@@ -125,7 +143,7 @@ export async function checkoutAction(
           orderCode: orderId,
           customerName,
           address,
-          paymentMethod,
+          paymentMethod: effectivePaymentMethod,
           totalZeni,
           itemsPurchased: totalUnits,
           status: 'despachado',

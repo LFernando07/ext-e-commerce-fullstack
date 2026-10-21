@@ -52,6 +52,46 @@ export const trackCTAClick = (ctaName: string) => {
   }
 };
 
+/**
+ * Evento GA4 Estándar: 'page_view'
+ * Registra la visualización de una página respetando el consentimiento del usuario.
+ */
+export const trackPageView = (url: string, pageTitle?: string) => {
+  if (typeof window === 'undefined') return;
+  const consent = getStoredConsent();
+  if (consent && !consent.analytics) return;
+
+  if (window.gtag) {
+    window.gtag('event', 'page_view', {
+      page_path: url,
+      page_location: window.location.href,
+      page_title: pageTitle || document.title,
+    });
+  }
+
+  // Meta Pixel PageView
+  if (consent?.marketing && window.fbq) {
+    window.fbq('track', 'PageView');
+  }
+};
+
+/**
+ * Evento GA4 Personalizado: 'navigation_click'
+ * Registra los clics de navegación en la barra superior y enlaces del menú.
+ */
+export const trackNavigationClick = (menuItem: string, destinationUrl: string) => {
+  if (typeof window === 'undefined') return;
+  const consent = getStoredConsent();
+  if (consent && !consent.analytics) return;
+
+  if (window.gtag) {
+    window.gtag('event', 'navigation_click', {
+      menu_item: menuItem,
+      destination_url: destinationUrl,
+    });
+  }
+};
+
 // Evento & User Properties: Login de usuario verificado
 export const trackUserLogin = (user: Omit<NenisUser, 'password'>) => {
   if (typeof window === 'undefined') return;

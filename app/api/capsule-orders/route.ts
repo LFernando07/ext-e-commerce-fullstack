@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, isPrismaConfigured } from '@/lib/prisma';
+import { sendOrderConfirmationEmail } from '@/lib/email';
 
 /**
  * Route Handler para listar y gestionar órdenes de compra de Capsule Corp (GET /api/capsule-orders)
@@ -95,6 +96,51 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, order: updated });
+  } catch (error: unknown) {
+    const err = error as Error;
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+/**
+ * Enviar o reenviar correo de confirmación con Resend (POST /api/capsule-orders)
+ */
+export async function POST(req: NextRequest) {
+  if (!isPrismaConfigured()) {
+    return NextResponse.json({ error: 'Base de datos no configurada' }, { status: 503 });
+  }
+
+  try {
+    const body = await req.json();
+    const { orderId, email } = body;
+
+    if (!orderId || !email) {
+      return NextResponse.json(
+        { error: 'Se requiere el orderId y el correo electrónico del destinatario' },
+        { status: 400 }
+      );
+    }
+
+    const order = await prisma.capsuleOrder.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
+
+    if (!order) {
+      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+    }
+
+    const result = await sendOrderConfirmationEmail({
+      to: email,
+      orderCode: order.orderCode,
+      customerName: order.customerName,
+      address: order.address,
+      totalAmount: order.totalZeni,
+      paymentMethod: order.paymentMethod,
+      items: order.items,
+    });
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     const err = error as Error;
     return NextResponse.json({ error: err.message }, { status: 500 });

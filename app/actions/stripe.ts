@@ -11,6 +11,9 @@ import { ECommerceProduct } from '@/types/dragonball';
 
 interface StripeCheckoutPayload {
   customerName: string;
+  customerEmail?: string;
+  couponCode?: string;
+  discountPercent?: number;
   address: string;
   items: Array<{ product: ECommerceProduct; quantity: number }>;
 }
@@ -29,7 +32,7 @@ export interface StripeCheckoutResult {
 export async function createStripeCheckoutSession(
   payload: StripeCheckoutPayload
 ): Promise<StripeCheckoutResult> {
-  const { customerName, address, items } = payload;
+  const { customerName, customerEmail, couponCode, discountPercent, address, items } = payload;
 
   if (!customerName || customerName.trim().length < 3) {
     return {
@@ -60,11 +63,16 @@ export async function createStripeCheckoutSession(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const orderCode = `CC-STRIPE-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1000)}`;
 
-  // Cálculo de totales en Zeni
-  const totalZeni = items.reduce(
+  const discountMultiplier = discountPercent && discountPercent > 0
+    ? 1 - (discountPercent / 100)
+    : 1;
+
+  // Cálculo de totales en Zeni con cupón de descuento
+  const rawTotalZeni = items.reduce(
     (acc, item) => acc + item.product.priceInZeni * item.quantity,
     0
   );
+  const totalZeni = Math.round(rawTotalZeni * discountMultiplier);
   const totalUnits = items.reduce((acc, item) => acc + item.quantity, 0);
 
   try {
@@ -75,7 +83,9 @@ export async function createStripeCheckoutSession(
           orderCode,
           customerName,
           address: address || 'Capital del Oeste, Tierra',
-          paymentMethod: 'Stripe Sandbox (Tarjeta)',
+          paymentMethod: couponCode
+            ? `Stripe Sandbox (Cupón ${couponCode} -${discountPercent}%)`
+            : 'Stripe Sandbox (Tarjeta)',
           paymentStatus: 'pending',
           totalZeni,
           itemsPurchased: totalUnits,
@@ -85,7 +95,7 @@ export async function createStripeCheckoutSession(
               productId: i.product.id,
               name: i.product.name,
               quantity: i.quantity,
-              unitPrice: i.product.priceInZeni,
+              unitPrice: Math.round(i.product.priceInZeni * discountMultiplier),
               image: i.product.image,
             })),
           },
@@ -93,19 +103,19 @@ export async function createStripeCheckoutSession(
       });
     }
 
-    // 2. Mapear cada cápsula a un Line Item de Stripe
-    // Conversión de precio MXN a Centavos (ej: $350 MXN -> 35000 centavos)
+    // 2. Mapear cada cápsula a un Line Item de Stripe aplicando el descuento del cupón
     const line_items = items.map((item) => {
+      const discountedUnitPrice = item.product.priceInZeni * discountMultiplier;
       const unitAmountInCents = Math.max(
         1000,
-        Math.round(item.product.priceInZeni * 100)
+        Math.round(discountedUnitPrice * 100)
       );
 
       return {
         price_data: {
           currency: 'mxn',
           product_data: {
-            name: `Cápsula Hoi-Poi: ${item.product.name}`,
+            name: `Cápsula Hoi-Poi: ${item.product.name}${couponCode ? ` (Cupón -${discountPercent}%)` : ''}`,
             description: `${item.product.race} | Poder Ki: ${item.product.ki} | Nivel: ${item.product.powerTier}`,
             images: item.product.image && item.product.image.startsWith('http')
               ? [item.product.image]
@@ -121,14 +131,17 @@ export async function createStripeCheckoutSession(
     const session = await stripe.checkout.sessions.create({
       line_items,
       mode: 'payment',
-      customer_email: undefined,
+      customer_email: customerEmail || undefined,
       metadata: {
         orderCode,
         customerName,
+        customerEmail: customerEmail || '',
+        couponCode: couponCode || '',
+        discountPercent: (discountPercent || 0).toString(),
         totalZeni: totalZeni.toString(),
       },
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}&order_code=${orderCode}`,
-      cancel_url: `${appUrl}/checkout/cancel?order_code=${orderCode}`,
+      cancel_url: `${appUrl}/checkout/cancel?order_code=${orderCode}&session_id={CHECKOUT_SESSION_ID}`,
     });
 
     // 4. Asociar stripeSessionId a la orden en Supabase

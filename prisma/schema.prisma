@@ -1,4 +1,3 @@
-// prisma/schema.prisma
 // Configuración de Prisma ORM para Supabase (PostgreSQL)
 
 generator client {
@@ -65,3 +64,49 @@ model CapsuleOrderItem {
   @@index([orderId])
   @@map("capsule_order_items")
 }
+
+// ─────────────────────────────────────────────────────────────
+// 3. MODELO DE USUARIOS Y AUTENTICACIÓN (Centralizado en Supabase)
+// ─────────────────────────────────────────────────────────────
+model User {
+  id               String    @id @default(cuid())
+  email            String
+  password         String
+  name             String
+  businessName     String    @default("Capsule Corp Explorer")
+  businessCategory String    @default("Coleccionables")
+  graduationLevel  String    @default("Starter") // 'Starter' | 'Growth' | 'Trusted'
+  creditLimit      Float     @default(5000)
+  availableCredit  Float     @default(5000)
+  role             String    @default("neni") // 'neni' | 'admin'
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([email])
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────────────────────
+// 4. MODELO DE CARRITOS ABANDONADOS (Recuperación por Resend)
+// ─────────────────────────────────────────────────────────────
+model AbandonedCart {
+  id            String    @id @default(cuid())
+  userId        String?
+  email         String
+  customerName  String    @default("Viajero Hoi-Poi")
+  items         Json      // Array con { productId, name, priceInZeni, quantity, image }
+  totalZeni     Float
+  recoveryToken String    @unique @default(cuid())
+  status        String    @default("abandoned") // 'active' | 'abandoned' | 'recovered'
+  emailSent     Boolean   @default(false)
+  emailSentAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@map("abandoned_carts")
+}
+

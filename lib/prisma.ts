@@ -35,6 +35,11 @@ declare const globalThis: {
   prismaGlobal: ReturnType<typeof prismaClientSingleton> | undefined;
 } & typeof global;
 
+// Si el cliente singleton en memoria fue instanciado antes de agregar nuevos modelos (ej. User, AbandonedCart), recrear
+if (globalThis.prismaGlobal && (!('user' in globalThis.prismaGlobal) || !('abandonedCart' in globalThis.prismaGlobal))) {
+  delete (globalThis as { prismaGlobal?: unknown }).prismaGlobal;
+}
+
 export const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
 if (process.env.NODE_ENV !== 'production') {

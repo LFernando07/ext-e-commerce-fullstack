@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { prisma, isPrismaConfigured } from '@/lib/prisma';
+import { sendOrderConfirmationEmail, sendAbandonedCartEmail, AbandonedCartEmailItem } from '@/lib/email';
 import Stripe from 'stripe';
+import crypto from 'crypto';
 
 /**
  * Route Handler para Webhooks de Stripe (POST /api/webhooks/stripe)
@@ -55,25 +57,121 @@ export async function POST(req: NextRequest) {
 
       if (isPrismaConfigured()) {
         try {
+          let updatedOrder = null;
           if (orderCode) {
-            await prisma.capsuleOrder.update({
+            updatedOrder = await prisma.capsuleOrder.update({
               where: { orderCode },
               data: {
                 paymentStatus: 'paid',
                 stripePaymentIntentId: paymentIntentId || null,
               },
+              include: { items: true },
             });
           } else if (session.id) {
-            await prisma.capsuleOrder.update({
+            updatedOrder = await prisma.capsuleOrder.update({
               where: { stripeSessionId: session.id },
               data: {
                 paymentStatus: 'paid',
                 stripePaymentIntentId: paymentIntentId || null,
               },
+              include: { items: true },
+            });
+          }
+
+          // Enviar confirmación de pedido vía Resend
+          const customerEmail = session.customer_details?.email;
+          if (customerEmail && updatedOrder) {
+            await sendOrderConfirmationEmail({
+              to: customerEmail,
+              orderCode: updatedOrder.orderCode,
+              customerName: updatedOrder.customerName,
+              address: updatedOrder.address,
+              totalAmount: updatedOrder.totalZeni,
+              paymentMethod: 'Stripe Sandbox (Tarjeta)',
+              items: updatedOrder.items,
             });
           }
         } catch (dbErr) {
           console.error('[webhooks/stripe] Error actualizando orden en Supabase:', dbErr);
+        }
+      }
+      break;
+    }
+
+    case 'checkout.session.expired': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const orderCode = session.metadata?.orderCode;
+      console.log(`[webhooks/stripe] ⏳ Sesión de Stripe Checkout abandonada/expirada: ${orderCode || session.id}`);
+
+      if (isPrismaConfigured()) {
+        try {
+          const order = orderCode
+            ? await prisma.capsuleOrder.findUnique({
+                where: { orderCode },
+                include: { items: true },
+              })
+            : await prisma.capsuleOrder.findFirst({
+                where: { stripeSessionId: session.id },
+                include: { items: true },
+              });
+
+          if (order && order.paymentStatus !== 'paid') {
+            await prisma.capsuleOrder.update({
+              where: { id: order.id },
+              data: { paymentStatus: 'abandoned' },
+            });
+
+            // Correo del cliente desde Stripe o metadata
+            const customerEmail =
+              session.customer_details?.email ||
+              session.customer_email ||
+              session.metadata?.customerEmail;
+
+            const effectiveEmail = customerEmail || 'lfbp5000@gmail.com';
+            const recoveryToken = crypto.randomBytes(16).toString('hex');
+
+            const cartItems: AbandonedCartEmailItem[] = order.items.map((i) => ({
+              name: i.name,
+              quantity: i.quantity,
+              unitPrice: i.unitPrice,
+              image: i.image,
+            }));
+
+            const abandonedCart = await prisma.abandonedCart.create({
+              data: {
+                email: effectiveEmail,
+                customerName: order.customerName,
+                items: JSON.parse(JSON.stringify(cartItems)),
+                totalZeni: order.totalZeni,
+                recoveryToken,
+                status: 'abandoned',
+              },
+            });
+
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+            const recoveryUrl = `${appUrl}/?recover_cart=${recoveryToken}`;
+
+            const emailResult = await sendAbandonedCartEmail({
+              to: effectiveEmail,
+              customerName: order.customerName,
+              items: cartItems,
+              totalAmount: order.totalZeni,
+              recoveryUrl,
+              discountCode: 'HOIPOI10',
+            });
+
+            if (emailResult.success) {
+              await prisma.abandonedCart.update({
+                where: { id: abandonedCart.id },
+                data: {
+                  emailSent: true,
+                  emailSentAt: new Date(),
+                },
+              });
+            }
+          }
+        } catch (dbErr) {
+          console.error('[webhooks/stripe] Error procesando checkout.session.expired:', dbErr);
         }
       }
       break;

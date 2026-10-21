@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -23,4 +24,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Suprime logs de source maps durante desarrollo si no hay token de autenticación configurado
+  silent: true,
+  org: process.env.SENTRY_ORG || "zenithenterprice",
+  project: process.env.SENTRY_PROJECT || "ext-e-commerce-fullstack-public",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  widenClientFileUpload: true,
+});
