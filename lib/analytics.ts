@@ -1,13 +1,8 @@
 import { getStoredConsent } from '@/lib/consent';
 import { NenisUser } from '@/lib/auth/users';
+import { PurchaseTrackerFailedPayload, PurchaseTrackPayload } from '@/types/general';
 
-// Tipado rápido para evitar advertencias de TypeScript con window
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
-    fbq?: (...args: unknown[]) => void;
-  }
-}
+
 
 // Evento: Registro o Lead completado (formulario de landing)
 export const trackLeadSubmission = (leadType = 'landing_signup') => {
@@ -139,21 +134,6 @@ export const trackUserLogout = () => {
   }
 };
 
-// ─── E-COMMERCE TRACKING (GA4 & Meta Pixel) ───
-
-export interface PurchaseTrackPayload {
-  transaction_id: string;
-  value: number;
-  currency?: string;
-  payment_method?: string;
-  items_count?: number;
-  items?: Array<{
-    item_id: string | number;
-    item_name: string;
-    price?: number;
-    quantity?: number;
-  }>;
-}
 
 /**
  * Evento GA4 Estándar: 'purchase' (Compra Exitosa)
@@ -201,12 +181,7 @@ export const trackPurchase = (payload: PurchaseTrackPayload) => {
  * Evento GA4 Personalizado: 'purchase_failed' (Compra Fallida o Cancelada)
  * Permite a los analistas medir la tasa de abandono y fallas en la pasarela.
  */
-export const trackPurchaseFailure = (data: {
-  transaction_id?: string;
-  error_message?: string;
-  payment_method?: string;
-  reason?: 'user_cancelled' | 'card_declined' | 'system_error';
-}) => {
+export const trackPurchaseFailure = (data: PurchaseTrackerFailedPayload) => {
   if (typeof window === 'undefined') return;
   const consent = getStoredConsent();
   if (consent && !consent.analytics) return;

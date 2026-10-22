@@ -24,13 +24,14 @@
 
 import { useActionState, useOptimistic, startTransition, useState } from 'react';
 import Image from 'next/image';
-import { useCart } from '@/context/CartContext';
 import { checkoutAction } from '@/app/actions/cart';
 import { createStripeCheckoutSession } from '@/app/actions/stripe';
 import { trackPurchase, trackPurchaseFailure } from '@/lib/analytics';
 import { CheckoutResult, CartItem } from '@/types/dragonball';
-import { useAuth } from '@/context/AuthContext';
 import LoginModal from '@/components/LoginModal';
+import { useAuth } from '@/app/hooks/useAuth';
+import { useCart } from '@/app/hooks/useCart';
+import { cartService } from '@/services/cart.service';
 
 const initialCheckoutState: CheckoutResult = {
   success: false,
@@ -209,23 +210,18 @@ export default function CartDrawer() {
     setReminderFeedback(null);
 
     try {
-      const res = await fetch('/api/cart/abandoned', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: targetEmail,
-          customerName: user?.name || 'Explorador Hoi-Poi',
-          items: optimisticItems.map((it) => ({
-            name: it.product.name,
-            quantity: it.quantity,
-            unitPrice: it.product.priceInZeni,
-            image: it.product.image,
-          })),
-          totalZeni: effectiveTotalZeni,
-        }),
+      const data = await cartService.sendAbandonedReminder({
+        email: targetEmail,
+        customerName: user?.name || 'Explorador Hoi-Poi',
+        items: optimisticItems.map((it) => ({
+          name: it.product.name,
+          quantity: it.quantity,
+          unitPrice: it.product.priceInZeni,
+          image: it.product.image,
+        })),
+        totalZeni: effectiveTotalZeni,
       });
 
-      const data = await res.json();
       if (data.success) {
         setReminderFeedback(`¡Enviado a ${targetEmail}! Revisa tu bandeja de entrada.`);
       } else {

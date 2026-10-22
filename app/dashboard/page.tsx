@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useState } from 'react';
 import Link from 'next/link';
 import LoginModal from '@/components/LoginModal';
 import PedidosManager from '@/components/PedidosManager';
 import CapsuleOrdersManager from '@/components/dbz/CapsuleOrdersManager';
+import { useAuth } from '../hooks/useAuth';
 
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
@@ -94,7 +94,7 @@ export default function DashboardPage() {
         {/* Cabecera del Perfil */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#E2DFF5] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#5B3289] to-[#DD4591] flex items-center justify-center text-white text-2xl font-bold font-ui shadow-md">
+            <div className="w-16 h-16 rounded-full bg-linear-to-tr from-[#5B3289] to-[#DD4591] flex items-center justify-center text-white text-2xl font-bold font-ui shadow-md">
               {user.name.charAt(0)}
             </div>
             <div>
@@ -125,7 +125,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           {/* Crédito Disponible (Tarjeta Principal) */}
-          <div className="md:col-span-2 bg-gradient-to-br from-[#5B3289] to-[#302768] text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+          <div className="md:col-span-2 bg-linear-to-br from-[#5B3289] to-[#302768] text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-2xl pointer-events-none" />
             
             <span className="text-xs font-ui tracking-wider uppercase text-white/80 block mb-1">

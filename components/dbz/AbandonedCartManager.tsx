@@ -1,28 +1,8 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-
-interface CartItemData {
-  productId?: number;
-  id?: number;
-  name: string;
-  quantity: number;
-  unitPrice?: number;
-  priceInZeni?: number;
-}
-
-interface AbandonedCart {
-  id: string;
-  email: string;
-  customerName: string;
-  items: CartItemData[];
-  totalZeni: number;
-  recoveryToken: string;
-  status: string; // 'active' | 'abandoned' | 'recovered'
-  emailSent: boolean;
-  emailSentAt: string | null;
-  createdAt: string;
-}
+import { cartService } from '@/services/cart.service';
+import { AbandonedCart } from '@/types/api';
 
 export default function AbandonedCartManager() {
   const [carts, setCarts] = useState<AbandonedCart[]>([]);
@@ -36,8 +16,7 @@ export default function AbandonedCartManager() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/cart/abandoned');
-      const data = await res.json();
+      const data = await cartService.getAbandonedCarts();
       if (data.success) {
         setCarts(data.carts || []);
       } else {
@@ -54,8 +33,7 @@ export default function AbandonedCartManager() {
     let ignore = false;
     async function load() {
       try {
-        const res = await fetch('/api/cart/abandoned');
-        const data = await res.json();
+        const data = await cartService.getAbandonedCarts();
         if (!ignore) {
           if (data.success) {
             setCarts(data.carts || []);
@@ -88,16 +66,10 @@ export default function AbandonedCartManager() {
     setFeedback(null);
 
     try {
-      const res = await fetch('/api/cart/abandoned', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cartId: cart.id,
-          customRecipient: targetEmail,
-        }),
+      const data = await cartService.sendAbandonedReminder({
+        cartId: cart.id,
+        customRecipient: targetEmail,
       });
-
-      const data = await res.json();
 
       if (data.success) {
         setFeedback(`✅ Correo de recuperación enviado a ${targetEmail}`);
@@ -124,29 +96,23 @@ export default function AbandonedCartManager() {
     setFeedback(null);
 
     try {
-      const res = await fetch('/api/cart/abandoned', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: testEmail,
-          customerName: 'Bulma Brief',
-          items: [
-            {
-              name: 'Cápsula Hoi-Poi Moto Voladora No. 9',
-              quantity: 1,
-              unitPrice: 1250,
-            },
-            {
-              name: 'Cápsula Hoi-Poi Refugio Portátil Capsule Corp',
-              quantity: 2,
-              unitPrice: 850,
-            },
-          ],
-          totalZeni: 2950,
-        }),
+      const data = await cartService.sendAbandonedReminder({
+        email: testEmail,
+        customerName: 'Bulma Brief',
+        items: [
+          {
+            name: 'Cápsula Hoi-Poi Moto Voladora No. 9',
+            quantity: 1,
+            unitPrice: 1250,
+          },
+          {
+            name: 'Cápsula Hoi-Poi Refugio Portátil Capsule Corp',
+            quantity: 2,
+            unitPrice: 850,
+          },
+        ],
+        totalZeni: 2950,
       });
-
-      const data = await res.json();
 
       if (data.success) {
         setFeedback(

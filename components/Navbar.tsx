@@ -9,12 +9,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
-import { useCart } from '@/context/CartContext';
 import LoginModal from '@/components/LoginModal';
 import { paths } from '@/config/routes';
 
 import { trackNavigationClick } from '@/lib/analytics';
+import { useCart } from '@/app/hooks/useCart';
+import { useAuth } from '@/app/hooks/useAuth';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -62,7 +62,7 @@ export default function Navbar() {
           {/* Navegación Principal */}
           <nav className="hidden md:flex items-center gap-6">
             <Link
-              href="/"
+              href={paths.landing.home}
               onClick={() => trackNavigationClick('Tienda & Inicio', '/')}
               className="text-sm font-ui text-gray-300 hover:text-cyan-400 font-medium transition-colors"
             >

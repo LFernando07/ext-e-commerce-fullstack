@@ -3,38 +3,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import AbandonedCartManager from './AbandonedCartManager';
-
-interface CapsuleOrderItem {
-  id: string;
-  productId: number;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  image: string | null;
-}
-
-interface CapsuleOrder {
-  id: string;
-  orderCode: string;
-  customerName: string;
-  address: string;
-  paymentMethod: string;
-  paymentStatus: string;
-  stripeSessionId: string | null;
-  stripePaymentIntentId: string | null;
-  totalZeni: number;
-  itemsPurchased: number;
-  status: string;
-  createdAt: string;
-  items: CapsuleOrderItem[];
-}
-
-interface OrdersStats {
-  totalOrders: number;
-  totalRevenue: number;
-  paidCount: number;
-  pendingCount: number;
-}
+import { ordersService } from '@/services/orders.service';
+import { CapsuleOrder, OrdersStats } from '@/types/api';
 
 export default function CapsuleOrdersManager() {
   const [orders, setOrders] = useState<CapsuleOrder[]>([]);
@@ -57,12 +27,11 @@ export default function CapsuleOrdersManager() {
 
     setEmailStatus((prev) => ({ ...prev, [order.id]: 'Enviando...' }));
     try {
-      const res = await fetch('/api/capsule-orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.id, email: targetEmail }),
+      const data = await ordersService.sendCapsuleOrderReceipt({
+        orderId: order.id,
+        email: targetEmail,
       });
-      const data = await res.json();
+
       if (data.success) {
         setEmailStatus((prev) => ({
           ...prev,
@@ -84,16 +53,11 @@ export default function CapsuleOrdersManager() {
       setLoading(true);
       setError(null);
 
-      const params = new URLSearchParams();
-      if (filterPayment !== 'all') params.set('paymentStatus', filterPayment);
-      if (searchTerm.trim()) params.set('search', searchTerm.trim());
+      const data = await ordersService.getCapsuleOrders({
+        paymentStatus: filterPayment !== 'all' ? filterPayment : undefined,
+        search: searchTerm.trim() || undefined,
+      });
 
-      const res = await fetch(`/api/capsule-orders?${params.toString()}`);
-      if (!res.ok) {
-        throw new Error('Error al consultar órdenes de compra en Supabase');
-      }
-
-      const data = await res.json();
       setOrders(data.orders || []);
       setStats(data.stats || null);
     } catch (err: unknown) {
@@ -108,16 +72,11 @@ export default function CapsuleOrdersManager() {
     let ignore = false;
     async function load() {
       try {
-        const params = new URLSearchParams();
-        if (filterPayment !== 'all') params.set('paymentStatus', filterPayment);
-        if (searchTerm.trim()) params.set('search', searchTerm.trim());
+        const data = await ordersService.getCapsuleOrders({
+          paymentStatus: filterPayment !== 'all' ? filterPayment : undefined,
+          search: searchTerm.trim() || undefined,
+        });
 
-        const res = await fetch(`/api/capsule-orders?${params.toString()}`);
-        if (!res.ok) {
-          throw new Error('Error al consultar órdenes de compra en Supabase');
-        }
-
-        const data = await res.json();
         if (!ignore) {
           setOrders(data.orders || []);
           setStats(data.stats || null);
@@ -144,18 +103,14 @@ export default function CapsuleOrdersManager() {
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
       setUpdatingId(id);
-      const res = await fetch('/api/capsule-orders', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status: newStatus }),
+      const data = await ordersService.updateCapsuleOrderStatus({
+        id,
+        status: newStatus,
       });
 
-      if (!res.ok) throw new Error('No se pudo actualizar el estado de envío');
-
-      const data = await res.json();
       if (data.success && data.order) {
         setOrders((prev) =>
-          prev.map((o) => (o.id === id ? { ...o, status: data.order.status } : o))
+          prev.map((o) => (o.id === id ? { ...o, status: data.order?.status || o.status } : o))
         );
       }
     } catch (err) {

@@ -21,7 +21,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ECommerceProduct } from '@/types/dragonball';
-import { useCart } from '@/context/CartContext';
+import { useCart } from '@/app/hooks/useCart';
 
 interface ProductCardProps {
   product: ECommerceProduct;

@@ -1,12 +1,12 @@
 'use client';
 
 import React, { Suspense, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { authService } from '@/services/auth.service';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const token = searchParams.get('token') || '';
 
   const [password, setPassword] = useState('');
@@ -50,15 +50,9 @@ function ResetPasswordForm() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
-      });
+      const data = await authService.resetPassword({ token, password });
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
+      if (!data.success) {
         setError(data.error || 'No se pudo actualizar la contraseña.');
         setLoading(false);
         return;
@@ -66,8 +60,8 @@ function ResetPasswordForm() {
 
       setSuccess(true);
       setLoading(false);
-    } catch {
-      setError('Error al comunicar con el servidor.');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Error al comunicar con el servidor.');
       setLoading(false);
     }
   };

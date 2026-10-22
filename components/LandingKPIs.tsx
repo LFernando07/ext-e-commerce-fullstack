@@ -6,26 +6,13 @@
  */
 
 import { connection } from "next/server";
+import { analyticsService } from "@/services/analytics.service";
+import { AnalyticsKPIsResponse } from "@/types/api";
 
-interface Metrics {
-  totalViews: number;
-  activeUsers: number;
-  scrollBottomCount: number;
-  leadsCount: number;
-  retentionRate: string;
-}
-
-async function getKPIs(): Promise<Metrics | null> {
+async function getKPIs(): Promise<AnalyticsKPIsResponse | null> {
   try {
     const isDev = process.env.NODE_ENV === "development";
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/analytics/kpis`,
-      {
-        next: { revalidate: isDev ? 0 : 60 },
-      },
-    );
-    if (!res.ok) return null;
-    return res.json();
+    return await analyticsService.getKPIs({ revalidate: isDev ? 0 : 60 });
   } catch {
     return null;
   }

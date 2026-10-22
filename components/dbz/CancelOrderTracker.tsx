@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { trackPurchaseFailure } from '@/lib/analytics';
+import { cartService } from '@/services/cart.service';
 import Link from 'next/link';
 
 interface CancelOrderTrackerProps {
@@ -34,12 +35,8 @@ export default function CancelOrderTracker({ orderCode }: CancelOrderTrackerProp
 
     // 2. Si viene orderCode, activar automáticamente el flujo de Carrito Abandonado
     if (orderCode) {
-      fetch('/api/cart/abandon-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderCode }),
-      })
-        .then((res) => res.json())
+      cartService
+        .abandonOrder(orderCode)
         .then((data) => {
           if (data.success) {
             setRecoveryInfo({

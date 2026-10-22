@@ -23,40 +23,20 @@
 
 import React, {
   createContext,
-  useContext,
   useState,
   useCallback,
   useEffect,
   useSyncExternalStore,
 } from "react";
 import { CartItem, ECommerceProduct } from "@/types/dragonball";
+import { CartContextType, CartCoupon } from "@/types/general";
+import { cartService } from "@/services/cart.service";
 
-export interface CartCoupon {
-  code: string;
-  discountPercent: number;
-}
+export const CartContext = createContext<CartContextType | undefined>(
+  undefined,
+);
 
-interface CartContextType {
-  items: CartItem[];
-  isOpen: boolean;
-  openCart: () => void;
-  closeCart: () => void;
-  toggleCart: () => void;
-  addToCart: (product: ECommerceProduct, quantity?: number) => void;
-  removeFromCart: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
-  clearCart: () => void;
-  restoreCart: (items: CartItem[]) => void;
-  coupon: CartCoupon | null;
-  applyCoupon: (code: string) => boolean;
-  removeCoupon: () => void;
-  discountAmount: number;
-  discountedTotalZeni: number;
-  totalZeni: number;
-  totalItems: number;
-}
-
-const CartContext = createContext<CartContextType | undefined>(undefined);
+export { useCart } from '@/app/hooks/useCart';
 
 const LOCAL_STORAGE_KEY =
   process.env.NEXT_PUBLIC_LOCAL_STORAGE_KEY || "capsule_corp_cart_v1";
@@ -115,7 +95,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const items = useSyncExternalStore(
     subscribeToCart,
     getCartSnapshot,
-    getServerCartSnapshot
+    getServerCartSnapshot,
   );
 
   const [isOpen, setIsOpen] = useState(false);
@@ -127,11 +107,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const applyCoupon = useCallback((code: string) => {
     const normalized = code.trim().toUpperCase();
-    if (normalized === 'HOIPOI10' || normalized === 'BULMA10') {
+    if (normalized === "HOIPOI10" || normalized === "BULMA10") {
       setCoupon({ code: normalized, discountPercent: 10 });
       return true;
     }
-    if (normalized === 'CAPSULE15') {
+    if (normalized === "CAPSULE15") {
       setCoupon({ code: normalized, discountPercent: 15 });
       return true;
     }
@@ -145,7 +125,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addToCart = useCallback((product: ECommerceProduct, quantity = 1) => {
     const current = getCartSnapshot();
     const existingIndex = current.findIndex(
-      (item) => item.product.id === product.id
+      (item) => item.product.id === product.id,
     );
 
     let nextItems: CartItem[];
@@ -153,7 +133,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       nextItems = current.map((item, idx) =>
         idx === existingIndex
           ? { ...item, quantity: item.quantity + quantity }
-          : item
+          : item,
       );
     } else {
       nextItems = [
@@ -183,7 +163,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const nextItems = current.map((item) =>
-      item.product.id === productId ? { ...item, quantity } : item
+      item.product.id === productId ? { ...item, quantity } : item,
     );
     persistCart(nextItems);
   }, []);
@@ -212,50 +192,68 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (recoverToken) {
-      fetch(`/api/cart/recover?token=${recoverToken}`)
-        .then((res) => res.json())
+      cartService
+        .recoverCart(recoverToken)
         .then((data) => {
           // Al retomar el carrito abandonado, aplicar automáticamente el cupón HOIPOI10 (10% de descuento)
-          setCoupon({ code: couponParam || 'HOIPOI10', discountPercent: 10 });
+          setCoupon({ code: couponParam || "HOIPOI10", discountPercent: 10 });
 
           if (data.success && data.cart && Array.isArray(data.cart.items)) {
-            const restoredItems: CartItem[] = data.cart.items.map(
-              (it: {
-                product?: ECommerceProduct;
-                productId?: number;
-                id?: number;
-                name: string;
-                priceInZeni?: number;
-                unitPrice?: number;
-                category?: string;
-                image?: string | null;
-                description?: string;
-                rarity?: string;
-                quantity?: number;
-              }) => {
-                if (it.product) {
-                  return {
-                    product: it.product,
-                    quantity: it.quantity || 1,
-                    addedAt: new Date().toISOString(),
-                  };
-                }
+            interface RecoveredItemInput {
+              product?: ECommerceProduct;
+              productId?: number;
+              id?: number;
+              name?: string;
+              priceInZeni?: number;
+              unitPrice?: number;
+              image?: string | null;
+              description?: string;
+              quantity?: number;
+              ki?: string;
+              maxKi?: string;
+              race?: string;
+              gender?: string;
+              affiliation?: string;
+              stock?: number;
+              capsuleType?: 'Hoi-Poi Básica' | 'Hoi-Poi Premium' | 'Hoi-Poi Legendaria';
+              powerTier?: 'Nivel Z (Supremo)' | 'Nivel S (Guerrero)' | 'Nivel A (Avanzado)' | 'Nivel B (Básico)';
+            }
+
+            const rawItems = data.cart.items as RecoveredItemInput[];
+            const restoredItems: CartItem[] = rawItems.map((it) => {
+              if (it.product) {
                 return {
-                  product: {
-                    id: it.productId || it.id || 1,
-                    name: it.name,
-                    priceInZeni: it.priceInZeni || it.unitPrice || 1000,
-                    category: (it.category as 'Capsule' | 'Vehicle' | 'Armor' | 'Special') || 'Capsule',
-                    image: it.image || '',
-                    description: it.description || '',
-                    rarity: (it.rarity as 'Common' | 'Rare' | 'Legendary') || 'Common',
-                    inStock: true,
-                  },
+                  product: it.product,
                   quantity: it.quantity || 1,
                   addedAt: new Date().toISOString(),
                 };
               }
-            );
+
+              const price = it.priceInZeni || it.unitPrice || 1000;
+              const product: ECommerceProduct = {
+                id: it.productId || it.id || 1,
+                name: it.name || 'Cápsula Hoi-Poi',
+                ki: it.ki || 'Desconocido',
+                maxKi: it.maxKi || 'Desconocido',
+                race: it.race || 'Humano / Terrícola',
+                gender: it.gender || 'Desconocido',
+                description: it.description || 'Cápsula de tecnología Capsule Corp.',
+                image: it.image || '',
+                affiliation: it.affiliation || 'Capsule Corp',
+                deletedAt: null,
+                priceInZeni: price,
+                formattedPrice: `${price.toLocaleString('es-MX')} Zeni`,
+                stock: it.stock || 10,
+                capsuleType: it.capsuleType || 'Hoi-Poi Básica',
+                powerTier: it.powerTier || 'Nivel B (Básico)',
+              };
+
+              return {
+                product,
+                quantity: it.quantity || 1,
+                addedAt: new Date().toISOString(),
+              };
+            });
 
             persistCart(restoredItems);
             setIsOpen(true); // Abrir el carrito para mostrar las cápsulas recuperadas con cupón
@@ -280,23 +278,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (items.length === 0) return;
 
     const timer = setTimeout(() => {
-      let userEmail = 'lfbp5000@gmail.com';
-      let userName = 'Explorador Hoi-Poi';
+      let userEmail = "lfbp5000@gmail.com";
+      let userName = "Explorador Hoi-Poi";
       try {
         const sessionCookie = document.cookie
-          .split('; ')
-          .find((row) => row.startsWith('nenis_session='));
+          .split("; ")
+          .find((row) => row.startsWith("nenis_session="));
         if (sessionCookie) {
-          const parsed = JSON.parse(decodeURIComponent(sessionCookie.split('=')[1]));
+          const parsed = JSON.parse(
+            decodeURIComponent(sessionCookie.split("=")[1]),
+          );
           if (parsed?.email) userEmail = parsed.email;
           if (parsed?.name) userName = parsed.name;
         }
       } catch {}
 
-      fetch('/api/cart/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      cartService
+        .syncCart({
           items: items.map((it) => ({
             productId: it.product.id,
             name: it.product.name,
@@ -306,12 +304,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           })),
           totalZeni: items.reduce(
             (acc, it) => acc + it.product.priceInZeni * it.quantity,
-            0
+            0,
           ),
           email: userEmail,
           customerName: userName,
-        }),
-      }).catch(() => {});
+        })
+        .catch(() => {});
     }, 1500);
 
     return () => clearTimeout(timer);
@@ -319,7 +317,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const totalZeni = items.reduce(
     (acc, item) => acc + item.product.priceInZeni * item.quantity,
-    0
+    0,
   );
 
   const discountAmount = coupon
@@ -355,13 +353,4 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       {children}
     </CartContext.Provider>
   );
-}
-
-// ── Hook personalizado para consumir el contexto del carrito ──
-export function useCart() {
-  const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart debe ser utilizado dentro de un <CartProvider>");
-  }
-  return context;
 }

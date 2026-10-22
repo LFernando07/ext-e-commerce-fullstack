@@ -35,13 +35,13 @@ export function logErrorToSentry(
  */
 export function triggerSentryTestError() {
   try {
-    throw new Error('🧪 Capsule Corp Sentry Test Error - Verificando monitoreo en DEV');
+    throw new Error('Capsule Corp Sentry Test Error - Verificando monitoreo en DEV');
   } catch (err) {
     logErrorToSentry(err, {
       tags: { source: 'sentry-test-button', environment: process.env.NODE_ENV || 'development' },
       extra: { timestamp: new Date().toISOString() },
     });
-    console.info('🧪 Error de prueba registrado en Sentry (ver consola / dashboard)');
+    console.info('Error de prueba registrado en Sentry (ver consola / dashboard)');
     return true;
   }
 }

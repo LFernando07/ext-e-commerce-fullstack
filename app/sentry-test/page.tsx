@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import * as Sentry from '@sentry/nextjs';
+import { sentryService } from '@/services/sentry.service';
 
 export default function SentryTestPage() {
   const [clientStatus, setClientStatus] = useState<string | null>(null);
@@ -21,8 +22,7 @@ export default function SentryTestPage() {
     setLoadingServer(true);
     setServerStatus(null);
     try {
-      const res = await fetch('/api/sentry-test');
-      const data = await res.json();
+      const data = await sentryService.triggerServerError();
       setServerStatus(
         data.success
           ? `✅ Evento de servidor enviado con ID: ${data.eventId}`

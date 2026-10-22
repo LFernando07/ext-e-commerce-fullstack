@@ -45,9 +45,20 @@ export const API_ROUTES = {
   PEDIDOS: '/api/pedidos',
   AUTH_ME: '/api/auth/me',
   AUTH_LOGIN: '/api/auth/login',
+  AUTH_REGISTER: '/api/auth/register',
+  AUTH_FORGOT_PASSWORD: '/api/auth/forgot-password',
+  AUTH_RESET_PASSWORD: '/api/auth/reset-password',
   AUTH_LOGOUT: '/api/auth/logout',
   LEADS: '/api/leads',
   INTERNO_METRICAS: '/api/interno/metricas',
+  CAPSULE_ORDERS: '/api/capsule-orders',
+  CART_SYNC: '/api/cart/sync',
+  CART_ABANDONED: '/api/cart/abandoned',
+  CART_RECOVER: '/api/cart/recover',
+  CART_ABANDON_ORDER: '/api/cart/abandon-order',
+  ANALYTICS_KPIS: '/api/analytics/kpis',
+  SENTRY_TEST: '/api/sentry-test',
+  CACHE_REVALIDATE: '/api/cache/revalidate',
 } as const;
 
 export type ApiRoute = (typeof API_ROUTES)[keyof typeof API_ROUTES];

@@ -1,8 +1,27 @@
 import { Resend } from 'resend';
-import { getOrderConfirmationHtml, OrderTemplateItem } from './email/templates/order-confirmation';
+import { getOrderConfirmationHtml } from './email/templates/order-confirmation';
 import { getWelcomeHtml } from './email/templates/welcome';
 import { getPasswordResetHtml } from './email/templates/password-reset';
-import { getAbandonedCartHtml, AbandonedCartTemplateItem } from './email/templates/abandoned-cart';
+import { getAbandonedCartHtml } from './email/templates/abandoned-cart';
+import {
+  SendAbandonedCartEmailPayload,
+  SendBasicEmailPayload,
+  SendOrderEmailPayload,
+  SendWelcomeEmailPayload,
+  SendPasswordResetEmailPayload,
+  AbandonedCartEmailItem,
+  OrderEmailItem,
+} from '@/types/email';
+
+export type {
+  SendAbandonedCartEmailPayload,
+  SendBasicEmailPayload,
+  SendOrderEmailPayload,
+  SendWelcomeEmailPayload,
+  SendPasswordResetEmailPayload,
+  AbandonedCartEmailItem,
+  OrderEmailItem,
+};
 
 /**
  * Instancia Singleton de Resend para envío de correos transaccionales
@@ -17,17 +36,7 @@ export const isResendConfigured = (): boolean => {
   return Boolean(key && key.startsWith('re_') && !key.includes('tu_api_key'));
 };
 
-export type OrderEmailItem = OrderTemplateItem;
 
-export interface SendOrderEmailPayload {
-  to: string;
-  orderCode: string;
-  customerName: string;
-  address?: string;
-  totalAmount: number;
-  paymentMethod: string;
-  items: OrderEmailItem[];
-}
 
 /**
  * Envía el correo de confirmación de compra con recibo detallado de Capsule Corp
@@ -86,7 +95,7 @@ export async function sendOrderConfirmationEmail(payload: SendOrderEmailPayload)
 /**
  * Envía correo de bienvenida tras registro de usuario
  */
-export async function sendWelcomeEmail(payload: { to: string; name: string }) {
+export async function sendWelcomeEmail(payload: SendWelcomeEmailPayload) {
   const { to, name } = payload;
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'Capsule Corp <onboarding@resend.dev>';
 
@@ -114,11 +123,7 @@ export async function sendWelcomeEmail(payload: { to: string; name: string }) {
 /**
  * Envía correo con token para restablecimiento de contraseña
  */
-export async function sendPasswordResetEmail(payload: {
-  to: string;
-  name: string;
-  resetUrl: string;
-}) {
+export async function sendPasswordResetEmail(payload: SendPasswordResetEmailPayload) {
   const { to, name, resetUrl } = payload;
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'Capsule Corp <onboarding@resend.dev>';
 
@@ -141,17 +146,6 @@ export async function sendPasswordResetEmail(payload: {
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message };
   }
-}
-
-export type AbandonedCartEmailItem = AbandonedCartTemplateItem;
-
-export interface SendAbandonedCartEmailPayload {
-  to: string;
-  customerName: string;
-  items: AbandonedCartEmailItem[];
-  totalAmount: number;
-  recoveryUrl: string;
-  discountCode?: string;
 }
 
 /**

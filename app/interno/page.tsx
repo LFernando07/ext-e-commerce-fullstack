@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { api, ENDPOINTS } from '@/lib/api-client';
+import { useEffect, useState } from 'react';
+import { analyticsService } from '@/services/analytics.service';
+import { InternoMetricasResponse } from '@/types/api';
 import Link from 'next/link';
 import LoginModal from '@/components/LoginModal';
 import CapsuleOrdersManager from '@/components/dbz/CapsuleOrdersManager';
+import { useAuth } from '../hooks/useAuth';
 
 export default function ModuloInternoPage() {
   const { user, loading: authLoading } = useAuth();
-  const [metricas, setMetricas] = useState<any>(null);
-  const [auditoria, setAuditoria] = useState<any>(null);
+  const [metricas, setMetricas] = useState<InternoMetricasResponse['data'] | null>(null);
+  const [auditoria, setAuditoria] = useState<InternoMetricasResponse['auditoria'] | null>(null);
   const [loadingMetricas, setLoadingMetricas] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -23,12 +24,12 @@ export default function ModuloInternoPage() {
         setLoadingMetricas(true);
         setError(null);
 
-        // ✅ Llama al endpoint interno usando la sesión compartida del mismo dominio
-        const res = await api.get(ENDPOINTS.INTERNO_METRICAS);
+        // ✅ Llama al servicio de analítica interna
+        const res = await analyticsService.getInternoMetricas();
         setMetricas(res.data);
         setAuditoria(res.auditoria);
-      } catch (err: any) {
-        setError(err.message || 'No fue posible acceder a la información interna.');
+      } catch (err: unknown) {
+        setError((err as Error).message || 'No fue posible acceder a la información interna.');
       } finally {
         setLoadingMetricas(false);
       }

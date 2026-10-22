@@ -1,7 +1,7 @@
 "use client";
 
 import { trackLeadSubmission } from "@/lib/analytics";
-import { api, ENDPOINTS } from "@/lib/api-client";
+import { analyticsService } from "@/services/analytics.service";
 import { useState } from "react";
 
 export default function LandingForm() {
@@ -19,8 +19,7 @@ export default function LandingForm() {
       : undefined;
 
     try {
-      // api.post con endpoint tipado ENDPOINTS.LEADS
-      const res = await api.post(ENDPOINTS.LEADS, { email, name });
+      const res = await analyticsService.submitLead({ email, name });
 
       if (res.success) {
         trackLeadSubmission("emprendedora_registro");

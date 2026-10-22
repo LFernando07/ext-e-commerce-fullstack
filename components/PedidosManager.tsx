@@ -1,68 +1,26 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { api, ENDPOINTS } from '@/lib/api-client';
-import { Pedido, PedidoEstado } from '@/types/api';
+import React from 'react';
+import { PedidoEstado } from '@/types/api';
+import { ordersService } from '@/services/orders.service';
+import { useOrders } from '@/app/hooks/useOrders';
 
 export default function PedidosManager() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterEstado, setFilterEstado] = useState<PedidoEstado | 'todos'>('todos');
-  const [actionLoading, setActionLoading] = useState(false);
-
-  // Estado del formulario nuevo pedido (POST)
-  const [isFormOpen, setIsFormOpen] = useState(false);
-
-  // Estado general del formulario para crear un nuevo pedido
-  const [pedidoForm, setPedidoForm] = useState({
-    clienteNombre: '',
-    concepto: '',
-    monto: '',
-    plazos: '4',
-  });
-
-  // Cargar pedidos utilizando `api.get` con endpoint tipado
-  const fetchPedidos = useCallback(async () => {
-    try {
-      const params = filterEstado !== 'todos' ? { estado: filterEstado } : undefined;
-      const res = await api.get(ENDPOINTS.PEDIDOS, { params });
-      setPedidos(res.data);
-    } catch (err: unknown) {
-      alert(`Error al cargar pedidos: ${(err as Error).message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [filterEstado]);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadInitial() {
-      try {
-        const params = filterEstado !== 'todos' ? { estado: filterEstado } : undefined;
-        const res = await api.get(ENDPOINTS.PEDIDOS, { params });
-        // Solo actualizar estado si el componente sigue montado
-        if (!ignore) {
-          setPedidos(res.data);
-        }
-      } catch (err: unknown) {
-        if (!ignore) {
-          alert(`Error al cargar pedidos: ${(err as Error).message}`);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadInitial();
-
-    // Cleanup para evitar actualizar estado si el componente se desmonta
-    return () => {
-      ignore = true;
-    };
-  }, [filterEstado]);
+  const {
+    pedidos,
+    setPedidos,
+    loading,
+    setLoading,
+    filterEstado,
+    setFilterEstado,
+    actionLoading,
+    setActionLoading,
+    isFormOpen,
+    setIsFormOpen,
+    pedidoForm,
+    setPedidoForm,
+    fetchPedidos,
+  } = useOrders();
 
   // 2. POST: Crear nuevo pedido a plazos utilizando `api.post`
   const handleCreatePedido = async (e: React.FormEvent) => {
@@ -73,8 +31,8 @@ export default function PedidosManager() {
     try {
       setActionLoading(true);
 
-      // ✅ ENDPOINTS.PEDIDOS con validación estricta del body
-      const res = await api.post(ENDPOINTS.PEDIDOS, {
+      // ordersService.createPedido con validación estricta del body
+      const res = await ordersService.createPedido({
         clienteNombre,
         concepto,
         monto: Number(monto),
@@ -97,13 +55,12 @@ export default function PedidosManager() {
     }
   };
 
-  // 3. PUT: Actualizar estado del pedido utilizando `api.put`
+  // 3. PUT: Actualizar estado del pedido utilizando `ordersService.updatePedido`
   const handleUpdateEstado = async (id: string, nuevoEstado: PedidoEstado) => {
     try {
       setActionLoading(true);
 
-      // ✅ ENDPOINTS.PEDIDOS con validación de body y retorno tipado
-      const res = await api.put(ENDPOINTS.PEDIDOS, {
+      const res = await ordersService.updatePedido({
         id,
         estado: nuevoEstado,
       });
@@ -118,17 +75,14 @@ export default function PedidosManager() {
     }
   };
 
-  // 4. DELETE: Cancelar o eliminar pedido utilizando `api.delete`
+  // 4. DELETE: Cancelar o eliminar pedido utilizando `ordersService.deletePedido`
   const handleDeletePedido = async (id: string) => {
     if (!confirm('¿Deseas cancelar y eliminar este pedido a plazos?')) return;
 
     try {
       setActionLoading(true);
 
-      // ENDPOINTS.PEDIDOS con parámetros tipados
-      await api.delete(ENDPOINTS.PEDIDOS, {
-        params: { id },
-      });
+      await ordersService.deletePedido(id);
 
       setPedidos((prev) => prev.filter((p) => p.id !== id));
     } catch (err: unknown) {

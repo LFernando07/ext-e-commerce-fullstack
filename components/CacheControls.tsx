@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { cacheService } from "@/services/cache.service";
+import { RevalidateAction } from "@/types/api";
 
 export default function CacheControls() {
   const router = useRouter();
@@ -9,30 +11,24 @@ export default function CacheControls() {
   const [log, setLog] = useState<string | null>(null);
 
   const handleRevalidate = async (
-    action: "revalidateTag" | "revalidatePath",
+    action: RevalidateAction,
     target: string,
   ) => {
     try {
       setLoading(true);
       setLog(null);
 
-      const res = await fetch("/api/cache/revalidate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, target }),
-      });
-
-      const data = await res.json();
+      const data = await cacheService.revalidate(action, target);
 
       if (data.success) {
-        setLog(`✅ [${data.layer}]: ${data.message}`);
+        setLog(`[${data.layer}]: ${data.message}`);
         // Refrescar la vista actual para observar los nuevos datos o el nuevo HTML
         router.refresh();
       } else {
-        setLog(`❌ Error: ${data.error}`);
+        setLog(`Error: ${data.error}`);
       }
     } catch (err: unknown) {
-      setLog(`❌ Error: ${(err as Error).message}`);
+      setLog(`Error: ${(err as Error).message}`);
     } finally {
       setLoading(false);
     }
