@@ -10,27 +10,7 @@ datasource db {
 }
 
 // ─────────────────────────────────────────────────────────────
-// 1. MODELO DE PEDIDOS A PLAZOS (Nenis Club / PedidosManager)
-// ─────────────────────────────────────────────────────────────
-model Pedido {
-  id              String   @id @default(cuid())
-  neniId          String   @default("usr_neni_001")
-  clienteNombre   String
-  concepto        String
-  monto           Float
-  plazosQuincenas Int      @default(4)
-  montoQuincenal  Float
-  estado          String   @default("pendiente") // 'pendiente' | 'aprobado' | 'en_entrega' | 'completado'
-  fechaCreacion   DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([estado])
-  @@index([neniId])
-  @@map("pedidos")
-}
-
-// ─────────────────────────────────────────────────────────────
-// 2. MODELO DE PEDIDOS CAPSULE CORP (Dragon Ball Z E-Commerce)
+// 1. MODELO DE PEDIDOS CAPSULE CORP (Dragon Ball Z E-Commerce)
 // ─────────────────────────────────────────────────────────────
 model CapsuleOrder {
   id             String             @id @default(cuid())

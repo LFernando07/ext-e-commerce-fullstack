@@ -15,13 +15,13 @@ flowchart TD
     subgraph UI_Layer ["Capas de Presentación (UI & State)"]
         Pages["App Router Pages\n(RSC & Client Components)"]
         Components["Componentes React\n(CartDrawer, OrdersManager, etc.)"]
-        Contexts["Contextos & Hooks\n(AuthContext, CartContext, useOrders)"]
+        Contexts["Contextos & Hooks\n(AuthContext, CartContext, useCart, useAuth)"]
     end
 
     subgraph Service_Layer ["Capa de Servicios (services/*)"]
         AuthService["authService\n(login, register, reset, me)"]
         CartService["cartService\n(sync, recover, abandon)"]
-        OrdersService["ordersService\n(capsuleOrders, pedidos)"]
+        OrdersService["ordersService\n(capsuleOrders, receipt)"]
         AnalyticsService["analyticsService\n(kpis, leads, metricas)"]
         CacheService["cacheService\n(revalidateTag, revalidatePath)"]
         SentryService["sentryService\n(triggerServerError)"]
@@ -88,9 +88,10 @@ flowchart TD
 - **Checkout Seguro**: Creación de sesiones en modo Sandbox (`app/actions/stripe.ts`).
 - **Webhooks Criptográficos**: Verificación de firmas `whsec_...` con `stripe.webhooks.constructEvent` y sincronización inmediata con Supabase.
 
-### 4. Sistema Financiero de Pedidos a Plazos (Nenis)
-- Módulo interno para registro y amortización quincenal de compras a plazos.
-- Actualización en tiempo real de estados de pedido (`pendiente`, `aprobado`, `en_entrega`, `completado`, `cancelado`).
+### 4. Gestión y Despacho de Órdenes Capsule Corp
+- Panel administrativo para visualizar órdenes de compra, filtros por estado de pago (`paid`, `pending`) y buscador en tiempo real.
+- Actualización de estados de entrega (`despachado`, `en_camino`, `entregado`) con persistencia en Supabase.
+- Reenvío de comprobantes de compra por correo electrónico con Resend.
 
 ### 5. Analítica en Tiempo Real & Observabilidad
 - **Google Analytics 4**: Reportes de usuarios activos, vistas de página y lectura completa mediante la API oficial `@google-analytics/data`.
@@ -215,7 +216,7 @@ pnpm run build
 │   ├── prisma.ts                  # Instancia singleton de PrismaClient con Supavisor
 │   └── stripe.ts                  # Configuración del SDK de Stripe
 ├── prisma/
-│   └── schema.prisma              # Esquema relacional (CapsuleOrder, AbandonedCart, Pedidos)
+│   └── schema.prisma              # Esquema relacional (CapsuleOrder, CapsuleOrderItem, AbandonedCart, User)
 ├── services/                      # Capa de Servicios desacoplada de la UI
 │   ├── auth.service.ts
 │   ├── cart.service.ts

@@ -3,36 +3,6 @@ import { API_ROUTES } from '@/config/routes';
 import { RegisterPayload } from '@/types/general';
 import { AbandonedCartEmailItem } from '@/lib/email';
 
-// ─── PEDIDOS A PLAZOS (NENIS) ───
-export type PedidoEstado = 'pendiente' | 'aprobado' | 'en_entrega' | 'completado' | 'cancelado';
-
-export interface Pedido {
-  id: string;
-  neniId: string;
-  clienteNombre: string;
-  concepto: string;
-  monto: number;
-  plazosQuincenas: number;
-  montoQuincenal: number;
-  estado: PedidoEstado;
-  fechaCreacion: string;
-}
-
-export interface CreatePedidoInput {
-  clienteNombre: string;
-  concepto: string;
-  monto: number;
-  plazosQuincenas: number;
-  neniId?: string;
-}
-
-export interface UpdatePedidoInput {
-  id: string;
-  estado?: PedidoEstado;
-  concepto?: string;
-  monto?: number;
-}
-
 // ─── ÓRDENES DE COMPRA CAPSULE CORP ───
 export interface CapsuleOrderItem {
   id: string;
@@ -152,45 +122,6 @@ export interface SentryTestResponse {
  * Las llaves se derivan de la constante API_ROUTES para evitar strings hardcodeados.
  */
 export interface ApiEndpoints {
-  [API_ROUTES.PEDIDOS]: {
-    GET: {
-      params?: {
-        estado?: PedidoEstado;
-        neniId?: string;
-        search?: string;
-      };
-      response: {
-        success: boolean;
-        total: number;
-        data: Pedido[];
-      };
-    };
-    POST: {
-      body: CreatePedidoInput;
-      response: {
-        success: boolean;
-        message: string;
-        data: Pedido;
-      };
-    };
-    PUT: {
-      body: UpdatePedidoInput;
-      response: {
-        success: boolean;
-        message: string;
-        data: Pedido;
-      };
-    };
-    DELETE: {
-      params: { id: string };
-      response: {
-        success: boolean;
-        message: string;
-        deletedId: string;
-      };
-    };
-  };
-
   [API_ROUTES.AUTH_ME]: {
     GET: {
       response: {

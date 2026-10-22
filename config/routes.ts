@@ -42,7 +42,6 @@ export const ROUTE_TITLES: Record<string, string> = {
  * Evita strings mágicos hardcodeados en llamadas fetch
  */
 export const API_ROUTES = {
-  PEDIDOS: '/api/pedidos',
   AUTH_ME: '/api/auth/me',
   AUTH_LOGIN: '/api/auth/login',
   AUTH_REGISTER: '/api/auth/register',

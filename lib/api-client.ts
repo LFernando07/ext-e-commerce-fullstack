@@ -220,7 +220,7 @@ export interface ApiClient {
 
 /**
  * Instancia `api` con métodos semánticos estrictamente tipados.
- * Admite tanto constantes tipadas (`ENDPOINTS.PEDIDOS`) como strings literales (`'/api/pedidos'`).
+ * Admite tanto constantes tipadas (`ENDPOINTS.CAPSULE_ORDERS`) como strings literales (`'/api/capsule-orders'`).
  */
 export const api: ApiClient = {
   get: <TResponse = unknown>(

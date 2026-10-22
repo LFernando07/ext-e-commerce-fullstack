@@ -3,14 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import LoginModal from '@/components/LoginModal';
-import PedidosManager from '@/components/PedidosManager';
 import CapsuleOrdersManager from '@/components/dbz/CapsuleOrdersManager';
 import { useAuth } from '../hooks/useAuth';
 
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth();
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'store_orders' | 'nenis_pedidos'>('store_orders');
 
   if (loading) {
     return (
@@ -187,41 +185,8 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* Navegación por Pestañas entre Órdenes de Tienda y Cartera */}
-        <div className="flex items-center gap-2 p-1.5 bg-white rounded-2xl border border-[#E2DFF5] shadow-xs w-fit">
-          <button
-            type="button"
-            onClick={() => setActiveTab('store_orders')}
-            className={`px-4 py-2 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'store_orders'
-                ? 'bg-[#1A1228] text-white shadow-sm'
-                : 'text-[#5E5C78] hover:text-[#1A1228] hover:bg-[#FAF9FF]'
-            }`}
-          >
-            <span>📦</span>
-            <span>Órdenes de Tienda (Stripe & E-Commerce)</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('nenis_pedidos')}
-            className={`px-4 py-2 rounded-xl text-xs font-ui font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-              activeTab === 'nenis_pedidos'
-                ? 'bg-[#5B3289] text-white shadow-sm'
-                : 'text-[#5E5C78] hover:text-[#1A1228] hover:bg-[#FAF9FF]'
-            }`}
-          >
-            <span>💳</span>
-            <span>Pedidos a Plazos Nenis Club</span>
-          </button>
-        </div>
-
-        {/* Contenido Dinámico de la Pestaña Seleccionada */}
-        {activeTab === 'store_orders' ? (
-          <CapsuleOrdersManager />
-        ) : (
-          <PedidosManager />
-        )}
+        {/* Panel de Gestión de Órdenes y Carritos Abandonados */}
+        <CapsuleOrdersManager />
 
         {/* Panel de Transparencia de Analítica y Privacidad */}
         <div className="bg-[#FAF9FF] rounded-2xl p-5 border border-[#E2DFF5] flex items-start gap-3.5">
